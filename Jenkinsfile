@@ -17,6 +17,15 @@ pipeline {
                 sh 'npm test'
             }
         }
+        stage('Security Scan') {
+            steps {
+                echo 'Running dependency vulnerability scan with Snyk'
+                sh '''
+                  npm install -g snyk
+                  snyk test --severity-threshold=high
+                '''
+            }
+        }
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image of the app'
