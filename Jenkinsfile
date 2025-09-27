@@ -2,6 +2,13 @@ pipeline {
     agent any   // run on the Jenkins container by default
 
     stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code'
+                checkout scm   // ensures repo files like package.json are available
+            }
+        }
+
         stage('Build') {
             steps {
                 echo 'Building the Application'
