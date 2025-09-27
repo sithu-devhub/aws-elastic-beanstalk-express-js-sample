@@ -1,10 +1,9 @@
 pipeline {
     agent {
         docker {
-            image 'node:16'   // Node 16 as the main build agent
+            image 'node:16'
         }
     }
-
     stages {
         stage('Build') {
             steps {
@@ -12,14 +11,12 @@ pipeline {
                 sh 'npm install --save'
             }
         }
-
         stage('Test') {
             steps {
                 echo 'Testing the application.'
                 sh 'npm test'
             }
         }
-
         stage('Security Scan') {
             steps {
                 echo 'Running dependency vulnerability scan with Snyk'
@@ -29,18 +26,13 @@ pipeline {
                 '''
             }
         }
-
-        // Docker-related stages must run in Jenkins container, not Node 16
         stage('Build Docker Image') {
-            agent any   // switch to Jenkins container with DinD access
             steps {
                 echo 'Building Docker image of the app'
                 sh 'docker build -t sithu/assignment2_22466972:${BUILD_NUMBER} .'
             }
         }
-
         stage('Deploy') {
-            agent any
             steps {
                 echo 'Deploying...'
             }
