@@ -1,5 +1,8 @@
 pipeline {
     agent any   // run on the Jenkins container by default
+    options {
+        skipDefaultCheckout(true)   // prevent duplicate SCM checkouts
+    }
 
     stages {
         stage('Checkout') {
