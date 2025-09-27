@@ -37,13 +37,17 @@ pipeline {
         stage('Security Scan') {
             steps {
                 echo 'Running dependency vulnerability scan with Snyk'
-                sh '''
-                  docker run --rm \
-                    -v $PWD:/app -w /app \
-                    sithuj/node16-snyk:latest snyk test --severity-threshold=high
-                '''
+                withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
+                    sh '''
+                    docker run --rm \
+                        -e SNYK_TOKEN=$SNYK_TOKEN \
+                        -v $PWD:/app -w /app \
+                        sithuj/node16-snyk:latest snyk test --severity-threshold=high
+                    '''
+                }
             }
         }
+
 
         stage('Build Docker Image') {
             steps {
