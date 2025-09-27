@@ -11,32 +11,42 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo 'Building the Application'
+                echo '===== [BUILD] Stage Started ====='
+                echo 'Installing Node.js dependencies...'
                 sh 'npm install --save'
+                echo 'Dependency installation finished.'
+                echo '===== [BUILD] Stage Completed ====='
             }
         }
         stage('Test') {
             steps {
-                echo 'Testing the application.'
-                sh 'npm test'
+                echo '===== [TEST] Stage Started ====='
+                echo 'Running unit tests...'
+                sh 'npm test || { echo "Tests failed, check output above"; exit 1; }'
+                echo '===== [TEST] Stage Completed ====='
             }
         }
         stage('Security Scan') {
             steps {
-                echo 'Running dependency vulnerability scan with Snyk'
+                echo '===== [SECURITY SCAN] Stage Started ====='
+                echo 'Authenticating with Snyk and scanning dependencies...'
                 withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
                     sh '''
-                      npm install -g snyk
-                      snyk auth $SNYK_TOKEN
-                      snyk test --severity-threshold=high | tee snyk.log
+                    npm install -g snyk
+                    snyk auth $SNYK_TOKEN
+                    snyk test --severity-threshold=high | tee snyk.log
                     '''
                 }
+                echo '===== [SECURITY SCAN] Stage Completed ====='
             }
         }
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image of the app'
+                echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
+                echo "Building Docker image: sithu/assignment2_22466972:${BUILD_NUMBER}"
                 sh 'docker build -t sithu/assignment2_22466972:${BUILD_NUMBER} .'
+                echo 'Docker image build finished successfully.'
+                echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
             }
         }
         stage('Deploy') {
