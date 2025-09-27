@@ -5,7 +5,7 @@ pipeline {
         stage('Build') {
             agent {
                 docker {
-                    image 'node:16'   // Node 16 as the build agent
+                    image 'sithuj/node16-snyk:latest'   // Custom Node 16 + Snyk build agent
                 }
             }
             steps {
@@ -17,7 +17,7 @@ pipeline {
         stage('Test') {
             agent {
                 docker {
-                    image 'node:16'   // Node 16 as the build agent
+                    image 'sithuj/node16-snyk:latest'   // Custom Node 16 + Snyk build agent
                 }
             }
             steps {
@@ -29,15 +29,12 @@ pipeline {
         stage('Security Scan') {
             agent {
                 docker {
-                    image 'node:16'   // Node 16 as the build agent
+                    image 'sithuj/node16-snyk:latest'   // Custom Node 16 + Snyk build agent
                 }
             }
             steps {
                 echo 'Running dependency vulnerability scan with Snyk'
-                sh '''
-                  npm install -g snyk
-                  snyk test --severity-threshold=high
-                '''
+                sh 'snyk test --severity-threshold=high'
             }
         }
 
