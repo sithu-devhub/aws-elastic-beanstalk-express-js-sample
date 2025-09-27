@@ -30,7 +30,7 @@ pipeline {
             steps {
                 echo '===== [SECURITY SCAN] Stage Started ====='
                 echo 'Authenticating with Snyk and scanning dependencies...'
-                withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+                withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''
                     npm install -g snyk
                     snyk auth $SNYK_TOKEN
