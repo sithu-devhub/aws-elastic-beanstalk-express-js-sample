@@ -61,9 +61,13 @@ pipeline {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
                 echo "Building Docker image: sithuj/assignment2_22466972:${BUILD_NUMBER}"
                 sh '''
-                docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} . 2>&1 | tee docker-build.log || { echo "Docker image build failed, check docker-build.log for details"; exit 1; }
+                docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} . 2>&1 | tee docker-build.log
+                status=${PIPESTATUS[0]:-0} 2>/dev/null || true
+                if [ "$status" -ne 0 ]; then
+                echo "Docker image build failed, check docker-build.log for details"
+                exit 1
+                fi
                 '''
-
                 echo 'Docker image build finished successfully.'
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
             }
