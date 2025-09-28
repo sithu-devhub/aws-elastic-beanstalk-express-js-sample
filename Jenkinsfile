@@ -18,7 +18,6 @@ pipeline {
                 echo '===== [BUILD] Stage Started ====='
                 echo 'Installing Node.js dependencies...'
                 sh '''
-                set -o pipefail
                 docker run --rm \
                     -v $PWD:/app -w /app \
                     sithuj/node16-snyk:latest npm install | tee build.log || { echo "Build failed, check output above"; exit 1; }
@@ -33,7 +32,6 @@ pipeline {
                 echo '===== [TEST] Stage Started ====='
                 echo 'Running unit tests...'
                 sh '''
-                  set -o pipefail
                   docker run --rm \
                     -v $PWD:/app -w /app \
                     sithuj/node16-snyk:latest npm test | tee test.log || { echo "Tests failed, check output above"; exit 1; }
@@ -64,7 +62,6 @@ pipeline {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
                 echo "Building Docker image: sithu/assignment2_22466972:${BUILD_NUMBER}"
                 sh '''
-                  set -o pipefail
                   docker build -t sithu/assignment2_22466972:${BUILD_NUMBER} . | tee docker-build.log || { echo "Docker image build failed, check output above"; exit 1; }
                 '''
                 echo 'Docker image build finished successfully.'
