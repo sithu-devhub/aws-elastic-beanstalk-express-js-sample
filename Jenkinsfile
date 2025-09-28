@@ -86,6 +86,7 @@ pipeline {
             }
         }
     }
+
     post {
         always {
             // Archive logs and reports of each stage
@@ -95,16 +96,16 @@ pipeline {
             archiveArtifacts artifacts: 'docker-build.log', fingerprint: true
             archiveArtifacts artifacts: 'docker-push.log', fingerprint: true
 
-            // Parse logs with Warnings NG (example: ESLint + generic console)
+            // Parse logs with Warnings NG (generic console log parser)
             recordIssues(
                 enabledForFailure: true,
                 tools: [
-                    eslint(pattern: '**/eslint-report.json'),
-                    npm(pattern: '**/npm-audit.json')
+                    generic(pattern: 'build.log'),
+                    generic(pattern: 'test.log'),
+                    generic(pattern: 'snyk.log')
                 ]
             )
         }
     }
-
 
 }
