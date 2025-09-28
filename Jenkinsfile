@@ -98,7 +98,10 @@ pipeline {
             // Scan console log and archived logs for "warning"/"error"
             recordIssues(
                 enabledForFailure: true,
-                tools: [eslint(pattern: 'eslint-report.json')]
+                tools: [
+                    esLint(pattern: 'eslint-report.json'),
+                    npmAudit(pattern: 'npm-audit.json')
+                ]
             )
 
         }
