@@ -1,45 +1,62 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:16'
-        }
-    }
+    agent any   // run on the Jenkins container by default
     options {
-        // Keep logs for 90 days or 100 builds (matches your UI config)
-        buildDiscarder(logRotator(daysToKeepStr: '90', numToKeepStr: '100'))
+        skipDefaultCheckout(true)   // prevent duplicate SCM checkouts
+        buildDiscarder(logRotator(daysToKeepStr: '90', numToKeepStr: '100'))  // Keep logs for 90 days or 100 builds (matches your UI config)
+
     }
     stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code'
+                checkout scm   // ensures repo files like package.json are available
+            }
+        }
+
         stage('Build') {
             steps {
                 echo '===== [BUILD] Stage Started ====='
                 echo 'Installing Node.js dependencies...'
-                sh 'npm install --save'
+                sh '''
+                  docker run --rm \
+                    -v $PWD:/app -w /app \
+                    sithuj/node16-snyk:latest npm install --save
+                '''
                 echo 'Dependency installation finished.'
                 echo '===== [BUILD] Stage Completed ====='
             }
         }
+
         stage('Test') {
             steps {
                 echo '===== [TEST] Stage Started ====='
                 echo 'Running unit tests...'
-                sh 'npm test || { echo "Tests failed, check output above"; exit 1; }'
+                sh '''
+                  docker run --rm \
+                    -v $PWD:/app -w /app \
+                    sithuj/node16-snyk:latest npm test || { echo "Tests failed, check output above"; exit 1; }
+                '''
                 echo '===== [TEST] Stage Completed ====='
             }
         }
+
         stage('Security Scan') {
             steps {
                 echo '===== [SECURITY SCAN] Stage Started ====='
                 echo 'Authenticating with Snyk and scanning dependencies...'
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''
-                    npm install -g snyk
-                    snyk auth $SNYK_TOKEN
-                    snyk test --severity-threshold=high | tee snyk.log
+                    docker run --rm \
+                        -e SNYK_TOKEN=$SNYK_TOKEN \
+                        -v $PWD:/app -w /app \
+                        sithuj/node16-snyk:latest snyk test --severity-threshold=high
                     '''
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
         }
+
+
         stage('Build Docker Image') {
             steps {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
@@ -49,13 +66,14 @@ pipeline {
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
             }
         }
+
         stage('Deploy') {
             steps {
                 echo 'Deploying...'
             }
         }
     }
-    post {
+        post {
         always {
             // Archive logs and reports
             archiveArtifacts artifacts: '**/npm-debug.log', fingerprint: true
