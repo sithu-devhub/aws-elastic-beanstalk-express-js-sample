@@ -89,32 +89,17 @@ pipeline {
 
     post {
         always {
-            // Archive logs
             archiveArtifacts artifacts: 'build.log', fingerprint: true
             archiveArtifacts artifacts: 'test.log', fingerprint: true
             archiveArtifacts artifacts: 'snyk.log', fingerprint: true
             archiveArtifacts artifacts: 'docker-build.log', fingerprint: true
             archiveArtifacts artifacts: 'docker-push.log', fingerprint: true
 
-            // Warnings NG
-            recordIssues(
-                tools: [
-                    scanForIssues(
-                        tool: analysisParser(id: 'generic', name: 'Generic Log Parser'),
-                        pattern: 'build.log'
-                    ),
-                    scanForIssues(
-                        tool: analysisParser(id: 'generic', name: 'Generic Log Parser'),
-                        pattern: 'test.log'
-                    ),
-                    scanForIssues(
-                        tool: analysisParser(id: 'generic', name: 'Generic Log Parser'),
-                        pattern: 'snyk.log'
-                    )
-                ]
-            )
+            // This will just scan console log and archived logs for "warning"/"error"
+            recordIssues()
         }
     }
+
 
 
 }
