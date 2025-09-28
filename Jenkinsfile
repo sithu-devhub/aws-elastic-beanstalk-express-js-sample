@@ -59,9 +59,9 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
-                echo "Building Docker image: sithu/assignment2_22466972:${BUILD_NUMBER}"
+                echo "Building Docker image: sithuj/assignment2_22466972:${BUILD_NUMBER}"
                 sh '''
-                  docker build -t sithu/assignment2_22466972:${BUILD_NUMBER} . | tee docker-build.log || { echo "Docker image build failed, check output above"; exit 1; }
+                  docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} . | tee docker-build.log || { echo "Docker image build failed, check output above"; exit 1; }
                 '''
                 echo 'Docker image build finished successfully.'
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
@@ -74,7 +74,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker push sithu/assignment2_22466972:${BUILD_NUMBER}
+                    docker push sithuj/assignment2_22466972:${BUILD_NUMBER}
                     docker logout
                     '''
                 }
