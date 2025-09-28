@@ -17,9 +17,10 @@ pipeline {
                 echo '===== [BUILD] Stage Started ====='
                 sh '''
                 docker run --rm \
-                    -v "$WORKSPACE":/app -w /app \
-                    sithuj/node16-snyk:latest \
-                    sh -c "npm install | tee /app/build.log || { echo 'Build failed, check build.log for details'; exit 1; }"
+                -v "$WORKSPACE":/app -w /app \
+                sithuj/node16-snyk:latest \
+                sh -c "npm install || { echo 'Build failed'; exit 1; }" \
+                | tee "$WORKSPACE/build.log"
                 '''
                 echo '===== [BUILD] Stage Completed ====='
             }
@@ -30,9 +31,10 @@ pipeline {
                 echo '===== [TEST] Stage Started ====='
                 sh '''
                 docker run --rm \
-                    -v "$WORKSPACE":/app -w /app \
-                    sithuj/node16-snyk:latest \
-                    sh -c "npm test --verbose | tee /app/test.log || { echo 'Tests failed, check test.log for details'; exit 1; }"
+                -v "$WORKSPACE":/app -w /app \
+                sithuj/node16-snyk:latest \
+                sh -c "npm test --verbose || { echo 'Tests failed'; exit 1; }" \
+                | tee "$WORKSPACE/test.log"
                 '''
                 echo '===== [TEST] Stage Completed ====='
             }
@@ -42,13 +44,14 @@ pipeline {
             steps {
                 echo '===== [SECURITY SCAN] Stage Started ====='
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
-                    sh '''
-                    docker run --rm \
-                        -e SNYK_TOKEN=$SNYK_TOKEN \
-                        -v "$WORKSPACE":/app -w /app \
-                        sithuj/node16-snyk:latest \
-                        sh -c "snyk test --severity-threshold=high | tee /app/snyk.log || { echo 'Security scan failed, check snyk.log for details'; exit 1; }"
-                    '''
+                sh '''
+                docker run --rm \
+                -e SNYK_TOKEN=$SNYK_TOKEN \
+                -v "$WORKSPACE":/app -w /app \
+                sithuj/node16-snyk:latest \
+                sh -c "snyk test --severity-threshold=high || { echo 'Security scan failed'; exit 1; }" \
+                | tee "$WORKSPACE/snyk.log"
+                '''
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
