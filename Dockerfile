@@ -1,5 +1,5 @@
 # Use Node.js 16 LTS as the base image
-FROM node:16
+FROM sithuj/node16-snyk:latest
 
 # Set working directory inside container
 WORKDIR /usr/src/app
