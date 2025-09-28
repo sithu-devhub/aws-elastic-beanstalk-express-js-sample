@@ -86,14 +86,20 @@ pipeline {
             }
         }
     }
+
     post {
         always {
-            // Archive logs and reports of each stage
             archiveArtifacts artifacts: 'build.log', fingerprint: true
             archiveArtifacts artifacts: 'test.log', fingerprint: true
             archiveArtifacts artifacts: 'snyk.log', fingerprint: true
             archiveArtifacts artifacts: 'docker-build.log', fingerprint: true
             archiveArtifacts artifacts: 'docker-push.log', fingerprint: true
+
+            // Scan console log and archived logs for "warning"/"error"
+            recordIssues()
         }
     }
+
+
+
 }
