@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent any // run on the Jenkins container by default
     options {
         skipDefaultCheckout(true)
         buildDiscarder(logRotator(daysToKeepStr: '90', numToKeepStr: '100'))
@@ -8,13 +8,14 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code'
-                checkout scm
+                checkout scm    // ensures repo files like package.json are available
             }
         }
 
         stage('Build') {
             steps {
                 echo '===== [BUILD] Stage Started ====='
+                echo 'Installing Node.js dependencies...'
                 sh '''
                 docker run --rm \
                   -v "$WORKSPACE":/app -w /app \
@@ -87,6 +88,7 @@ pipeline {
     }
     post {
         always {
+            // Archive logs and reports of each stage
             archiveArtifacts artifacts: 'build.log', fingerprint: true
             archiveArtifacts artifacts: 'test.log', fingerprint: true
             archiveArtifacts artifacts: 'snyk.log', fingerprint: true
