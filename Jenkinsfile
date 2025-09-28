@@ -94,6 +94,17 @@ pipeline {
             archiveArtifacts artifacts: 'snyk.log', fingerprint: true
             archiveArtifacts artifacts: 'docker-build.log', fingerprint: true
             archiveArtifacts artifacts: 'docker-push.log', fingerprint: true
+
+            // Parse logs with Warnings Next Generation plugin
+            recordIssues(
+                enabledForFailure: true,
+                tools: [
+                    logParser(name: 'Build Log', pattern: 'build.log'),
+                    logParser(name: 'Test Log', pattern: 'test.log'),
+                    logParser(name: 'Snyk Log', pattern: 'snyk.log')
+                ]
+            )
         }
     }
+
 }
