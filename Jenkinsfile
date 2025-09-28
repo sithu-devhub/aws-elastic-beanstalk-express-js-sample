@@ -19,9 +19,9 @@ pipeline {
                 echo 'Installing Node.js dependencies...'
                 sh '''
                 docker run --rm \
-                    -u $(id -u):$(id -g) \
                     -v $WORKSPACE:/app -w /app \
-                    sithuj/node16-snyk:latest npm install | tee build.log || { echo "Build failed, check build.log for details"; exit 1; }
+                    sithuj/node16-snyk:latest \
+                    sh -c "npm install | tee build.log || { echo 'Build failed, check build.log for details'; exit 1; }"
                 '''
                 echo 'Dependency installation finished.'
                 echo '===== [BUILD] Stage Completed ====='
