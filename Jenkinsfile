@@ -95,16 +95,16 @@ pipeline {
             archiveArtifacts artifacts: 'docker-build.log', fingerprint: true
             archiveArtifacts artifacts: 'docker-push.log', fingerprint: true
 
-            // Parse logs with Warnings Next Generation plugin
+            // Parse logs with Warnings NG (example: ESLint + generic console)
             recordIssues(
                 enabledForFailure: true,
                 tools: [
-                    logParser(name: 'Build Log', pattern: 'build.log'),
-                    logParser(name: 'Test Log', pattern: 'test.log'),
-                    logParser(name: 'Snyk Log', pattern: 'snyk.log')
+                    eslint(pattern: '**/eslint-report.json'),
+                    npm(pattern: '**/npm-audit.json')
                 ]
             )
         }
     }
+
 
 }
