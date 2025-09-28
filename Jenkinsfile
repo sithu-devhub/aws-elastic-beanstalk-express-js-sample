@@ -18,9 +18,10 @@ pipeline {
                 echo '===== [BUILD] Stage Started ====='
                 echo 'Installing Node.js dependencies...'
                 sh '''
-                  docker run --rm \
+                set -o pipefail
+                docker run --rm \
                     -v $PWD:/app -w /app \
-                    sithuj/node16-snyk:latest npm install --save
+                    sithuj/node16-snyk:latest npm install | tee build.log || { echo "Build failed, check output above"; exit 1; }
                 '''
                 echo 'Dependency installation finished.'
                 echo '===== [BUILD] Stage Completed ====='
@@ -32,9 +33,10 @@ pipeline {
                 echo '===== [TEST] Stage Started ====='
                 echo 'Running unit tests...'
                 sh '''
+                  set -o pipefail
                   docker run --rm \
                     -v $PWD:/app -w /app \
-                    sithuj/node16-snyk:latest npm test || { echo "Tests failed, check output above"; exit 1; }
+                    sithuj/node16-snyk:latest npm test | tee test.log || { echo "Tests failed, check output above"; exit 1; }
                 '''
                 echo '===== [TEST] Stage Completed ====='
             }
@@ -49,7 +51,7 @@ pipeline {
                     docker run --rm \
                         -e SNYK_TOKEN=$SNYK_TOKEN \
                         -v $PWD:/app -w /app \
-                        sithuj/node16-snyk:latest snyk test --severity-threshold=high
+                        sithuj/node16-snyk:latest snyk test --severity-threshold=high | tee snyk.log || { echo "Security scan failed, check output above"; exit 1; }
                     '''
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
@@ -61,7 +63,10 @@ pipeline {
             steps {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
                 echo "Building Docker image: sithu/assignment2_22466972:${BUILD_NUMBER}"
-                sh 'docker build -t sithu/assignment2_22466972:${BUILD_NUMBER} .'
+                sh '''
+                  set -o pipefail
+                  docker build -t sithu/assignment2_22466972:${BUILD_NUMBER} . | tee docker-build.log || { echo "Docker image build failed, check output above"; exit 1; }
+                '''
                 echo 'Docker image build finished successfully.'
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
             }
@@ -76,8 +81,10 @@ pipeline {
         post {
         always {
             // Archive logs and reports
-            archiveArtifacts artifacts: '**/npm-debug.log', fingerprint: true
+            archiveArtifacts artifacts: 'build.log', fingerprint: true
+            archiveArtifacts artifacts: 'test.log', fingerprint: true
             archiveArtifacts artifacts: 'snyk.log', fingerprint: true
+            archiveArtifacts artifacts: 'docker-build.log', fingerprint: true
         }
     }
 }
