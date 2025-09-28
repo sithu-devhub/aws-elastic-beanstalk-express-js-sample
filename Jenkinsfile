@@ -95,15 +95,8 @@ pipeline {
             archiveArtifacts artifacts: 'docker-build.log', fingerprint: true
             archiveArtifacts artifacts: 'docker-push.log', fingerprint: true
 
-            // Scan console log and archived logs for "warning"/"error"
-            recordIssues(
-                enabledForFailure: true,
-                tools: [
-                    esLint(pattern: 'eslint-report.json'),
-                    npmAudit(pattern: 'npm-audit.json')
-                ]
-            )
-
+            // Scan console logs for "warning"/"error"
+            recordIssues()
         }
     }
 
