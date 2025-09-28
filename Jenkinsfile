@@ -34,7 +34,7 @@ pipeline {
                 sh '''
                   docker run --rm \
                     -v $PWD:/app -w /app \
-                    sithuj/node16-snyk:latest npm test | tee test.log || { echo "Tests failed, check test.log for details"; exit 1; }
+                    sithuj/node16-snyk:latest npm test --verbose | tee test.log || { echo "Tests failed, check test.log for details"; exit 1; }
                 '''
                 echo '===== [TEST] Stage Completed ====='
             }
