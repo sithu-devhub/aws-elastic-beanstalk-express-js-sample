@@ -1,29 +1,26 @@
 pipeline {
-    agent any   // run on the Jenkins container by default
+    agent any
     options {
-        skipDefaultCheckout(true)   // prevent duplicate SCM checkouts
-        buildDiscarder(logRotator(daysToKeepStr: '90', numToKeepStr: '100'))  // Keep logs for 90 days or 100 builds (matches your UI config)
-
+        skipDefaultCheckout(true)
+        buildDiscarder(logRotator(daysToKeepStr: '90', numToKeepStr: '100'))
     }
     stages {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code'
-                checkout scm   // ensures repo files like package.json are available
+                checkout scm
             }
         }
 
         stage('Build') {
             steps {
                 echo '===== [BUILD] Stage Started ====='
-                echo 'Installing Node.js dependencies...'
                 sh '''
                 docker run --rm \
-                    -v $WORKSPACE:/app -w /app \
+                    -v "$WORKSPACE":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    sh -c "npm install | tee build.log || { echo 'Build failed, check build.log for details'; exit 1; }"
+                    sh -c "npm install | tee /app/build.log || { echo 'Build failed, check build.log for details'; exit 1; }"
                 '''
-                echo 'Dependency installation finished.'
                 echo '===== [BUILD] Stage Completed ====='
             }
         }
@@ -31,12 +28,11 @@ pipeline {
         stage('Test') {
             steps {
                 echo '===== [TEST] Stage Started ====='
-                echo 'Running unit tests...'
                 sh '''
-                  docker run --rm \
-                    -v $WORKSPACE:/app -w /app \
+                docker run --rm \
+                    -v "$WORKSPACE":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    sh -c "npm test --verbose | tee test.log || { echo 'Tests failed, check test.log for details'; exit 1; }"
+                    sh -c "npm test --verbose | tee /app/test.log || { echo 'Tests failed, check test.log for details'; exit 1; }"
                 '''
                 echo '===== [TEST] Stage Completed ====='
             }
@@ -45,14 +41,13 @@ pipeline {
         stage('Security Scan') {
             steps {
                 echo '===== [SECURITY SCAN] Stage Started ====='
-                echo 'Authenticating with Snyk and scanning dependencies...'
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''
                     docker run --rm \
                         -e SNYK_TOKEN=$SNYK_TOKEN \
-                        -v $WORKSPACE:/app -w /app \
+                        -v "$WORKSPACE":/app -w /app \
                         sithuj/node16-snyk:latest \
-                        sh -c "snyk test --severity-threshold=high | tee snyk.log || { echo 'Security scan failed, check snyk.log for details'; exit 1; }"
+                        sh -c "snyk test --severity-threshold=high | tee /app/snyk.log || { echo 'Security scan failed, check snyk.log for details'; exit 1; }"
                     '''
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
@@ -62,12 +57,10 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
-                echo "Building Docker image: sithuj/assignment2_22466972:${BUILD_NUMBER}"
                 sh '''#!/bin/bash
                 set -o pipefail
-                docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} $WORKSPACE 2>&1 | tee docker-build.log
+                docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} "$WORKSPACE" 2>&1 | tee "$WORKSPACE/docker-build.log"
                 '''
-                echo 'Docker image build finished successfully.'
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
             }
         }
@@ -78,7 +71,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker push sithuj/assignment2_22466972:${BUILD_NUMBER} | tee docker-push.log || { echo "Docker image push to Docker Hub failed, check docker-push.log for details"; exit 1; }
+                    docker push sithuj/assignment2_22466972:${BUILD_NUMBER} | tee "$WORKSPACE/docker-push.log" || { echo "Docker image push failed"; exit 1; }
                     docker logout
                     '''
                 }
@@ -94,7 +87,6 @@ pipeline {
     }
     post {
         always {
-            // Archive logs and reports of each stage
             archiveArtifacts artifacts: 'build.log', fingerprint: true
             archiveArtifacts artifacts: 'test.log', fingerprint: true
             archiveArtifacts artifacts: 'snyk.log', fingerprint: true
