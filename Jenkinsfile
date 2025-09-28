@@ -19,7 +19,8 @@ pipeline {
                 echo 'Installing Node.js dependencies...'
                 sh '''
                 docker run --rm \
-                    -v $PWD:/app -w /app \
+                    -u $(id -u):$(id -g) \
+                    -v $WORKSPACE:/app -w /app \
                     sithuj/node16-snyk:latest npm install | tee build.log || { echo "Build failed, check build.log for details"; exit 1; }
                 '''
                 echo 'Dependency installation finished.'
@@ -33,7 +34,8 @@ pipeline {
                 echo 'Running unit tests...'
                 sh '''
                   docker run --rm \
-                    -v $PWD:/app -w /app \
+                    -u $(id -u):$(id -g) \
+                    -v $WORKSPACE:/app -w /app \
                     sithuj/node16-snyk:latest npm test --verbose | tee test.log || { echo "Tests failed, check test.log for details"; exit 1; }
                 '''
                 echo '===== [TEST] Stage Completed ====='
@@ -47,8 +49,9 @@ pipeline {
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''
                     docker run --rm \
+                        -u $(id -u):$(id -g) \
                         -e SNYK_TOKEN=$SNYK_TOKEN \
-                        -v $PWD:/app -w /app \
+                        -v $WORKSPACE:/app -w /app \
                         sithuj/node16-snyk:latest snyk test --severity-threshold=high | tee snyk.log || { echo "Security scan failed, check snyk.log for details"; exit 1; }
                     '''
                 }
@@ -62,7 +65,7 @@ pipeline {
                 echo "Building Docker image: sithuj/assignment2_22466972:${BUILD_NUMBER}"
                 sh '''#!/bin/bash
                 set -o pipefail
-                docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} . 2>&1 | tee docker-build.log
+                docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} $WORKSPACE 2>&1 | tee docker-build.log
                 '''
                 echo 'Docker image build finished successfully.'
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
@@ -89,7 +92,7 @@ pipeline {
             }
         }
     }
-        post {
+    post {
         always {
             // Archive logs and reports of each stage
             archiveArtifacts artifacts: 'build.log', fingerprint: true

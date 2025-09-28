@@ -34,7 +34,7 @@ pipeline {
                 sh '''
                   docker run --rm \
                     -v $PWD:/app -w /app \
-                    sithuj/node16-snyk:latest npm test | tee test.log || { echo "Tests failed, check test.log for details"; exit 1; }
+                    sithuj/node16-snyk:latest npm test --verbose | tee test.log || { echo "Tests failed, check test.log for details"; exit 1; }
                 '''
                 echo '===== [TEST] Stage Completed ====='
             }
@@ -60,8 +60,9 @@ pipeline {
             steps {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
                 echo "Building Docker image: sithuj/assignment2_22466972:${BUILD_NUMBER}"
-                sh '''
-                docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} . 2>&1 | tee docker-build.log || { echo "Docker image build failed, check docker-build.log for details"; exit 1; }
+                sh '''#!/bin/bash
+                set -o pipefail
+                docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} . 2>&1 | tee docker-build.log
                 '''
                 echo 'Docker image build finished successfully.'
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
