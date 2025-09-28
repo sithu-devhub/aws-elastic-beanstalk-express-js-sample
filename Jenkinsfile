@@ -34,9 +34,9 @@ pipeline {
                 echo 'Running unit tests...'
                 sh '''
                   docker run --rm \
-                    -u $(id -u):$(id -g) \
                     -v $WORKSPACE:/app -w /app \
-                    sithuj/node16-snyk:latest npm test --verbose | tee test.log || { echo "Tests failed, check test.log for details"; exit 1; }
+                    sithuj/node16-snyk:latest \
+                    sh -c "npm test --verbose | tee test.log || { echo 'Tests failed, check test.log for details'; exit 1; }"
                 '''
                 echo '===== [TEST] Stage Completed ====='
             }
@@ -49,10 +49,10 @@ pipeline {
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''
                     docker run --rm \
-                        -u $(id -u):$(id -g) \
                         -e SNYK_TOKEN=$SNYK_TOKEN \
                         -v $WORKSPACE:/app -w /app \
-                        sithuj/node16-snyk:latest snyk test --severity-threshold=high | tee snyk.log || { echo "Security scan failed, check snyk.log for details"; exit 1; }
+                        sithuj/node16-snyk:latest \
+                        sh -c "snyk test --severity-threshold=high | tee snyk.log || { echo 'Security scan failed, check snyk.log for details'; exit 1; }"
                     '''
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
