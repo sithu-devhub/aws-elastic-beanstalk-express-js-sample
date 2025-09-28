@@ -56,7 +56,6 @@ pipeline {
             }
         }
 
-
         stage('Build Docker Image') {
             steps {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
@@ -66,6 +65,20 @@ pipeline {
                 '''
                 echo 'Docker image build finished successfully.'
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                echo '===== [DOCKER PUSH] Stage Started ====='
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker push sithu/assignment2_22466972:${BUILD_NUMBER}
+                    docker logout
+                    '''
+                }
+                echo '===== [DOCKER PUSH] Stage Completed ====='
             }
         }
 
