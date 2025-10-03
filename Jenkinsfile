@@ -45,13 +45,11 @@ pipeline {
                 echo '===== [SECURITY SCAN] Stage Started ====='
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''
-                    #!/bin/bash
-                    set -o pipefail
                     docker run --rm \
-                      -e SNYK_TOKEN=$SNYK_TOKEN \
-                      -v "$BUILD_DIR":/app -w /app \
-                      sithuj/node16-snyk:latest \
-                      bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log || { echo 'Security scan failed'; exit 1; }"
+                    -e SNYK_TOKEN=$SNYK_TOKEN \
+                    -v "$BUILD_DIR":/app -w /app \
+                    sithuj/node16-snyk:latest \
+                    bash -c "set -o pipefail && snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
                     '''
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
