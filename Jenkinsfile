@@ -9,7 +9,7 @@ pipeline {
             steps {
                 echo 'Checking out source code'
                 checkout scm    // ensures repo files like package.json are available
-                sh 'mkdir -p /tmp/build-$BUILD_NUMBER && cp -r $WORKSPACE/* /tmp/build-$BUILD_NUMBER/'
+                sh 'mkdir -p /tmp/build-$BUILD_NUMBER && cp -r $WORKSPACE/. /tmp/build-$BUILD_NUMBER/'
                 script {
                     env.BUILD_DIR = "/tmp/build-$BUILD_NUMBER"
                 }
