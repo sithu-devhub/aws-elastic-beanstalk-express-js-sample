@@ -75,28 +75,29 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
 
-                    # Run Snyk with tee and capture exit code
+                    # Run Snyk and capture exit code while still teeing logs
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log; exit ${PIPESTATUS[0]}"
+                    snyk test --severity-threshold=high --exit-code=1 \
+                    2>&1 | tee "$BUILD_DIR/snyk.log"
 
-                    rc=$?   # <-- capture this once and save
+                    rc=${PIPESTATUS[0]}   # real snyk exit code
 
-                    # Export JSON separately (do not overwrite rc!)
+                    # Export JSON report (ignore its exit status so rc is preserved)
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
                     snyk test --severity-threshold=high --json > "$BUILD_DIR/snyk.json" || true
 
-                    # Copy artifacts
+                    # Copy artifacts to workspace
                     echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
                     cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
                     cp "$BUILD_DIR/snyk.json" "$WORKSPACE/snyk.json"
 
-                    # Extra safeguard: fail if JSON contains high
+                    # Extra safeguard: fail if JSON shows high severity
                     if grep -q '"severity":"high"' "$WORKSPACE/snyk.json"; then
                     echo 'High severity vulnerabilities detected. Failing build.'
                     exit 1
@@ -108,6 +109,7 @@ pipeline {
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
         }
+
 
         stage('Build Docker Image') {
             steps {
