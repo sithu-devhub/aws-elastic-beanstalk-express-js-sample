@@ -110,65 +110,88 @@ pipeline {
             }
         }
 
-
         stage('Build Docker Image') {
             steps {
-                echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
-                sh '''#!/bin/bash
-                set -o pipefail
-                docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} "$WORKSPACE" \
-                2>&1 | tee "$BUILD_DIR/docker-build.log"
-                rc=$?
+                script {
+                    try {
+                        echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
+                        sh '''#!/bin/bash
+                        set -o pipefail
+                        docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} "$WORKSPACE" \
+                        2>&1 | tee "$BUILD_DIR/docker-build.log"
+                        rc=$?
 
-                # Add build header and copy log
-                {
-                echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
-                cat "$BUILD_DIR/docker-build.log"
-                } > "$WORKSPACE/docker-build.log"
+                        # Add build header and copy log
+                        {
+                        echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                        cat "$BUILD_DIR/docker-build.log"
+                        } > "$WORKSPACE/docker-build.log"
 
-                exit $rc
-                '''
-                echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
+                        exit $rc
+                        '''
+                        echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
+                    } catch (Exception e) {
+                        // Create a dummy log so archiveArtifacts always has a file
+                        sh '''#!/bin/bash
+                        echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) =====" > "$WORKSPACE/docker-build.log"
+                        echo "Stage 'Build Docker Image' was skipped or failed due to earlier pipeline failure." >> "$WORKSPACE/docker-build.log"
+                        '''
+                        throw e
+                    }
+                }
             }
         }
+
 
         stage('Push to Docker Hub') {
             steps {
-                echo '===== [DOCKER PUSH] Stage Started ====='
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds',
-                                                usernameVariable: 'DOCKER_USER',
-                                                passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''#!/bin/bash
-                    set -o pipefail
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                script {
+                    try {
+                        echo '===== [DOCKER PUSH] Stage Started ====='
+                        withCredentials([usernamePassword(credentialsId: 'docker-hub-creds',
+                                                        usernameVariable: 'DOCKER_USER',
+                                                        passwordVariable: 'DOCKER_PASS')]) {
+                            sh '''#!/bin/bash
+                            set -o pipefail
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                    # Push docker image with unique build number tag
-                    docker push sithuj/assignment2_22466972:${BUILD_NUMBER} \
-                    2>&1 | tee "$BUILD_DIR/docker-push.log"
+                            # Push docker image with unique build number tag
+                            docker push sithuj/assignment2_22466972:${BUILD_NUMBER} \
+                            2>&1 | tee "$BUILD_DIR/docker-push.log"
 
-                    # Tag the same image as latest
-                    docker tag sithuj/assignment2_22466972:${BUILD_NUMBER} \
-                                sithuj/assignment2_22466972:latest
+                            # Tag the same image as latest
+                            docker tag sithuj/assignment2_22466972:${BUILD_NUMBER} \
+                                    sithuj/assignment2_22466972:latest
 
-                    # Push the latest tag (will replace old latest)
-                    docker push sithuj/assignment2_22466972:latest \
-                    2>&1 | tee -a "$BUILD_DIR/docker-push.log"
+                            # Push the latest tag (will replace old latest)
+                            docker push sithuj/assignment2_22466972:latest \
+                            2>&1 | tee -a "$BUILD_DIR/docker-push.log"
 
-                    rc=$?
-                    docker logout
+                            rc=$?
+                            docker logout
 
-                    # Add build header and copy log
-                    {
-                    echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
-                    cat "$BUILD_DIR/docker-push.log"
-                    } > "$WORKSPACE/docker-push.log"
+                            # Add build header and copy log
+                            {
+                            echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                            cat "$BUILD_DIR/docker-push.log"
+                            } > "$WORKSPACE/docker-push.log"
 
-                    exit $rc
-                    '''
+                            exit $rc
+                            '''
+                        }
+                        echo '===== [DOCKER PUSH] Stage Completed ====='
+                    } catch (Exception e) {
+                        // Fallback log so archiveArtifacts always has a file
+                        sh '''#!/bin/bash
+                        echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) =====" > "$WORKSPACE/docker-push.log"
+                        echo "Stage 'Push to Docker Hub' was skipped or failed due to earlier pipeline failure." >> "$WORKSPACE/docker-push.log"
+                        '''
+                        throw e
+                    }
                 }
-                echo '===== [DOCKER PUSH] Stage Completed ====='
             }
         }
+
 
         stage('Deploy') {
             steps {
