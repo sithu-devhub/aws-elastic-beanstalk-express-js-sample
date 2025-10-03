@@ -38,7 +38,7 @@ pipeline {
                 set -o pipefail
                 docker run --rm -v "$BUILD_DIR":/app -w /app sithuj/node16-snyk:latest \
                   bash -c "npm test --verbose 2>&1 | tee /app/test.log"
-                rc=${PIPESTATUS[0]}
+                rc=$?
                 cp "$BUILD_DIR/test.log" "$WORKSPACE/test.log"
                 exit $rc
                 '''
@@ -57,7 +57,7 @@ pipeline {
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
                     bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
-                    rc=${PIPESTATUS[0]}
+                    rc=$?
 
                     cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log" || true
 
@@ -77,7 +77,7 @@ pipeline {
                 set -o pipefail
                 docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} "$WORKSPACE" \
                   2>&1 | tee "$BUILD_DIR/docker-build.log"
-                rc=${PIPESTATUS[0]}
+                rc=$?
                 cp "$BUILD_DIR/docker-build.log" "$WORKSPACE/docker-build.log"
                 exit $rc
                 '''
@@ -96,7 +96,7 @@ pipeline {
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     docker push sithuj/assignment2_22466972:${BUILD_NUMBER} \
                       2>&1 | tee "$BUILD_DIR/docker-push.log"
-                    rc=${PIPESTATUS[0]}
+                    rc=$?
                     docker logout
                     cp "$BUILD_DIR/docker-push.log" "$WORKSPACE/docker-push.log"
                     exit $rc
