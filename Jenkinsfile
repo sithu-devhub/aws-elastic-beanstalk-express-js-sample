@@ -23,8 +23,12 @@ pipeline {
                 set -o pipefail
                 docker run --rm -v "$BUILD_DIR":/app -w /app sithuj/node16-snyk:latest \
                   bash -c "npm install 2>&1 | tee /app/build.log"
-                rc=${PIPESTATUS[0]}
-                cp "$BUILD_DIR/build.log" "$WORKSPACE/build.log"
+                rc=$?
+
+                # Always ensure build.log exists
+                touch "$BUILD_DIR/build.log"
+                cp "$BUILD_DIR/build.log" "$WORKSPACE/build.log" 2>/dev/null || echo "No build log generated" > "$WORKSPACE/build.log"
+
                 exit $rc
                 '''
                 echo '===== [BUILD] Stage Completed ====='
@@ -39,7 +43,7 @@ pipeline {
                 docker run --rm -v "$BUILD_DIR":/app -w /app sithuj/node16-snyk:latest \
                   bash -c "npm test --verbose 2>&1 | tee /app/test.log"
                 rc=$?
-                cp "$BUILD_DIR/test.log" "$WORKSPACE/test.log"
+                cp "$BUILD_DIR/test.log" "$WORKSPACE/test.log" || true
                 exit $rc
                 '''
                 echo '===== [TEST] Stage Completed ====='
@@ -53,13 +57,15 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
                     docker run --rm \
-                    -e SNYK_TOKEN=$SNYK_TOKEN \
-                    -v "$BUILD_DIR":/app -w /app \
-                    sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
+                      -e SNYK_TOKEN=$SNYK_TOKEN \
+                      -v "$BUILD_DIR":/app -w /app \
+                      sithuj/node16-snyk:latest \
+                      bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
                     rc=$?
 
-                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log" || true
+                    # Always ensure snyk.log exists
+                    touch "$BUILD_DIR/snyk.log"
+                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log" 2>/dev/null || echo "No snyk log generated" > "$WORKSPACE/snyk.log"
 
                     exit $rc
                     '''
@@ -67,8 +73,6 @@ pipeline {
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
         }
-
-
 
         stage('Build Docker Image') {
             steps {
@@ -78,7 +82,7 @@ pipeline {
                 docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} "$WORKSPACE" \
                   2>&1 | tee "$BUILD_DIR/docker-build.log"
                 rc=$?
-                cp "$BUILD_DIR/docker-build.log" "$WORKSPACE/docker-build.log"
+                cp "$BUILD_DIR/docker-build.log" "$WORKSPACE/docker-build.log" || true
                 exit $rc
                 '''
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
@@ -98,7 +102,7 @@ pipeline {
                       2>&1 | tee "$BUILD_DIR/docker-push.log"
                     rc=$?
                     docker logout
-                    cp "$BUILD_DIR/docker-push.log" "$WORKSPACE/docker-push.log"
+                    cp "$BUILD_DIR/docker-push.log" "$WORKSPACE/docker-push.log" || true
                     exit $rc
                     '''
                 }
