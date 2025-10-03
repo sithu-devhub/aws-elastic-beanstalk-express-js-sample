@@ -56,6 +56,7 @@ pipeline {
                     sithuj/node16-snyk:latest \
                     bash -c "snyk test --severity-threshold=high 2>&1 | tee snyk.log; EXIT_CODE=\\${PIPESTATUS[0]}; cp snyk.log /app/snyk.log; exit \\$EXIT_CODE"
                     '''
+                    // Copy snyk log back so Jenkins can archive it
                     sh "cp $BUILD_DIR/snyk.log $WORKSPACE/ || true"
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
@@ -97,11 +98,11 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'build.log', fingerprint: true
-            archiveArtifacts artifacts: 'test.log', fingerprint: true
-            archiveArtifacts artifacts: 'snyk.log', fingerprint: true
-            archiveArtifacts artifacts: 'docker-build.log', fingerprint: true
-            archiveArtifacts artifacts: 'docker-push.log', fingerprint: true
+            archiveArtifacts artifacts: '**/build.log', fingerprint: true
+            archiveArtifacts artifacts: '**/test.log', fingerprint: true
+            archiveArtifacts artifacts: '**/snyk.log', fingerprint: true
+            archiveArtifacts artifacts: '**/docker-build.log', fingerprint: true
+            archiveArtifacts artifacts: '**/docker-push.log', fingerprint: true
 
             // Scan console logs for "warning"/"error"
             recordIssues()
