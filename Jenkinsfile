@@ -25,7 +25,7 @@ pipeline {
                   sithuj/node16-snyk:latest \
                   sh -c "npm install 2>&1 | tee /app/build.log || { echo 'Build failed'; exit 1; }"
                 '''
-                // Copy build log back to workspace so Jenkins can archive it
+                // Copy build log back so Jenkins can archive it
                 sh "cp $BUILD_DIR/build.log $WORKSPACE/ || true"
                 echo '===== [BUILD] Stage Completed ====='
             }
@@ -39,7 +39,7 @@ pipeline {
                   sithuj/node16-snyk:latest \
                   sh -c "npm test --verbose 2>&1 | tee /app/test.log || { echo 'Tests failed'; exit 1; }"
                 '''
-                // Copy test log back to workspace so Jenkins can archive it
+                // Copy test log back so Jenkins can archive it
                 sh "cp $BUILD_DIR/test.log $WORKSPACE/ || true"
                 echo '===== [TEST] Stage Completed ====='
             }
@@ -48,14 +48,14 @@ pipeline {
             steps {
                 echo '===== [SECURITY SCAN] Stage Started ====='
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
-                    sh '''
+                    sh '''#!/bin/bash
                     docker run --rm \
-                    -e SNYK_TOKEN=$SNYK_TOKEN \
-                    -v "$BUILD_DIR":/app -w /app \
-                    sithuj/node16-snyk:latest \
-                    bash -c "set -o pipefail; snyk test --severity-threshold=high 2>&1 | tee snyk.log; exit \${PIPESTATUS[0]}"
+                      -e SNYK_TOKEN=$SNYK_TOKEN \
+                      -v "$BUILD_DIR":/app -w /app \
+                      sithuj/node16-snyk:latest \
+                      bash -c "set -o pipefail && snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
                     '''
-                    // Copy snyk log back to workspace so Jenkins can archive it
+                    // Copy snyk log back so Jenkins can archive it
                     sh "cp $BUILD_DIR/snyk.log $WORKSPACE/ || true"
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
@@ -106,7 +106,4 @@ pipeline {
             recordIssues()
         }
     }
-
-
-
 }
