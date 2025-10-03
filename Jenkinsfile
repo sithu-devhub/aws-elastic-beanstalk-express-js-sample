@@ -75,23 +75,24 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
 
-                    # Run Snyk with tee, but preserve its exit code using PIPESTATUS
+                    # Run Snyk with tee and capture exit code
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
                     bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log; exit ${PIPESTATUS[0]}"
 
-                    rc=$?
+                    rc=$?   # <-- capture this once and save
 
-                    # Export JSON separately for parsing
+                    # Export JSON separately (do not overwrite rc!)
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    snyk test --severity-threshold=high --json > "$BUILD_DIR/snyk.json"
+                    snyk test --severity-threshold=high --json > "$BUILD_DIR/snyk.json" || true
 
                     # Copy artifacts
+                    echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
                     cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
                     cp "$BUILD_DIR/snyk.json" "$WORKSPACE/snyk.json"
 
@@ -107,7 +108,6 @@ pipeline {
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
         }
-
 
         stage('Build Docker Image') {
             steps {
