@@ -27,8 +27,7 @@ pipeline {
 
                 # Guarantee build.log exists
                 touch "$BUILD_DIR/build.log"
-                cp "$BUILD_DIR/build.log" "$WORKSPACE/build.log" || true
-
+                cp -f "$BUILD_DIR/build.log" "$WORKSPACE/build.log" || true
                 exit $rc
                 '''
                 echo '===== [BUILD] Stage Completed ====='
