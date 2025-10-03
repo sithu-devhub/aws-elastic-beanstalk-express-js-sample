@@ -79,7 +79,7 @@ pipeline {
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log || true"
+                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
                     rc=$?
 
                     # Add build header and copy log
