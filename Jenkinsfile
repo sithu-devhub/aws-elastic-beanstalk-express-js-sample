@@ -11,7 +11,13 @@ pipeline {
                 checkout scm    // ensures repo files like package.json are available
             }
         }
-
+        stage('Debug Workspace') {
+            steps {
+                echo 'Listing workspace contents...'
+                sh 'ls -lah $WORKSPACE'
+                sh 'cat $WORKSPACE/package.json || echo "package.json not found"'
+            }
+        }
         stage('Build') {
             steps {
                 echo '===== [BUILD] Stage Started ====='
