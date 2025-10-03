@@ -75,18 +75,27 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
 
+                    # Run snyk twice: once for human logs, once for JSON
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high --json > snyk.json"
+                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
 
                     rc=$?
 
-                    # Copy results
+                    # Also export JSON for programmatic checks
+                    docker run --rm \
+                    -e SNYK_TOKEN=$SNYK_TOKEN \
+                    -v "$BUILD_DIR":/app -w /app \
+                    sithuj/node16-snyk:latest \
+                    snyk test --severity-threshold=high --json > "$BUILD_DIR/snyk.json"
+
+                    # Copy artifacts into Jenkins workspace
+                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
                     cp "$BUILD_DIR/snyk.json" "$WORKSPACE/snyk.json"
 
-                    # Fail if report contains High severity
+                    # Fail explicitly if High vulnerabilities are in JSON
                     if grep -q '"severity":"high"' "$WORKSPACE/snyk.json"; then
                     echo 'High severity vulnerabilities detected. Failing build.'
                     exit 1
@@ -98,6 +107,7 @@ pipeline {
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
         }
+
 
         stage('Build Docker Image') {
             steps {
