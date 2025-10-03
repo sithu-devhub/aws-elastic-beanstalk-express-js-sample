@@ -15,7 +15,6 @@ pipeline {
                 }
             }
         }
-
         stage('Build') {
             steps {
                 echo '===== [BUILD] Stage Started ====='
@@ -26,11 +25,11 @@ pipeline {
                   sithuj/node16-snyk:latest \
                   sh -c "npm install 2>&1 | tee /app/build.log || { echo 'Build failed'; exit 1; }"
                 '''
+                // Copy build log back for archiving
                 sh "cp $BUILD_DIR/build.log $WORKSPACE/build.log || true"
                 echo '===== [BUILD] Stage Completed ====='
             }
         }
-
         stage('Test') {
             steps {
                 echo '===== [TEST] Stage Started ====='
@@ -40,22 +39,23 @@ pipeline {
                   sithuj/node16-snyk:latest \
                   sh -c "npm test --verbose 2>&1 | tee /app/test.log || { echo 'Tests failed'; exit 1; }"
                 '''
+                // Copy test log back for archiving
                 sh "cp $BUILD_DIR/test.log $WORKSPACE/test.log || true"
                 echo '===== [TEST] Stage Completed ====='
             }
         }
-
         stage('Security Scan') {
             steps {
                 echo '===== [SECURITY SCAN] Stage Started ====='
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''
                     docker run --rm \
-                      -e SNYK_TOKEN=$SNYK_TOKEN \
-                      -v "$BUILD_DIR":/app -w /app \
-                      sithuj/node16-snyk:latest \
-                      bash -c "set -o pipefail && snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
+                    -e SNYK_TOKEN=$SNYK_TOKEN \
+                    -v "$BUILD_DIR":/app -w /app \
+                    sithuj/node16-snyk:latest \
+                    bash -c "set -o pipefail && snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
                     '''
+                    // Copy snyk log back for archiving
                     sh "cp $BUILD_DIR/snyk.log $WORKSPACE/snyk.log || true"
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
@@ -69,6 +69,7 @@ pipeline {
                 set -o pipefail
                 docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} "$WORKSPACE" 2>&1 | tee /app/docker-build.log
                 '''
+                // Copy docker-build log back for archiving
                 sh "cp $BUILD_DIR/docker-build.log $WORKSPACE/docker-build.log || true"
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
             }
@@ -83,6 +84,7 @@ pipeline {
                     docker push sithuj/assignment2_22466972:${BUILD_NUMBER} 2>&1 | tee /app/docker-push.log || { echo "Docker image push failed"; exit 1; }
                     docker logout
                     '''
+                    // Copy docker-push log back for archiving
                     sh "cp $BUILD_DIR/docker-push.log $WORKSPACE/docker-push.log || true"
                 }
                 echo '===== [DOCKER PUSH] Stage Completed ====='
