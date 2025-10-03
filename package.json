@@ -15,8 +15,7 @@
 
   "dependencies": {
     "express": "^4.21.2",
-    "lodash": "4.17.4",
-    "minimist": "0.0.8"
+    "lodash": "4.17.4"
   },
 
   "devDependencies": {
