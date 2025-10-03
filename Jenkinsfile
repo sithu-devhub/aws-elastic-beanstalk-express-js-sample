@@ -24,7 +24,7 @@ pipeline {
                 docker run --rm \
                   -v "$BUILD_DIR":/app -w /app \
                   sithuj/node16-snyk:latest \
-                  bash -c "npm install 2>&1 | tee build.log; EXIT_CODE=\\${PIPESTATUS[0]}; cp build.log /app/build.log; exit \\$EXIT_CODE" || EXIT_CODE=$?
+                  bash -c "npm install 2>&1 | tee /app/build.log; EXIT_CODE=\\${PIPESTATUS[0]}; exit \\$EXIT_CODE" || EXIT_CODE=$?
                 cp $BUILD_DIR/build.log $WORKSPACE/ || true
                 exit $EXIT_CODE
                 '''
@@ -39,7 +39,7 @@ pipeline {
                 docker run --rm \
                   -v "$BUILD_DIR":/app -w /app \
                   sithuj/node16-snyk:latest \
-                  bash -c "npm test --verbose 2>&1 | tee test.log; EXIT_CODE=\\${PIPESTATUS[0]}; cp test.log /app/test.log; exit \\$EXIT_CODE" || EXIT_CODE=$?
+                  bash -c "npm test --verbose 2>&1 | tee /app/test.log; EXIT_CODE=\\${PIPESTATUS[0]}; exit \\$EXIT_CODE" || EXIT_CODE=$?
                 cp $BUILD_DIR/test.log $WORKSPACE/ || true
                 exit $EXIT_CODE
                 '''
@@ -56,7 +56,7 @@ pipeline {
                       -e SNYK_TOKEN=$SNYK_TOKEN \
                       -v "$BUILD_DIR":/app -w /app \
                       sithuj/node16-snyk:latest \
-                      bash -c "snyk test --severity-threshold=high 2>&1 | tee snyk.log; EXIT_CODE=\\${PIPESTATUS[0]}; cp snyk.log /app/snyk.log; exit \\$EXIT_CODE" || EXIT_CODE=$?
+                      bash -c "snyk test --severity-threshold=high 2>&1 | tee /app/snyk.log; EXIT_CODE=\\${PIPESTATUS[0]}; exit \\$EXIT_CODE" || EXIT_CODE=$?
                     cp $BUILD_DIR/snyk.log $WORKSPACE/ || true
                     exit $EXIT_CODE
                     '''
