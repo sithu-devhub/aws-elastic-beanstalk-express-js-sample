@@ -49,7 +49,7 @@ pipeline {
                       -e SNYK_TOKEN=$SNYK_TOKEN \
                       -v "$BUILD_DIR":/app -w /app \
                       sithuj/node16-snyk:latest \
-                      sh -c "snyk test --severity-threshold=high 2>&1 | tee /app/snyk.log || { echo 'Security scan failed'; exit 1; }"
+                      sh -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log || { echo 'Security scan failed'; exit 1; }"
                     '''
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
