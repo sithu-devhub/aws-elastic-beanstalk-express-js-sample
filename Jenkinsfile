@@ -9,6 +9,10 @@ pipeline {
             steps {
                 echo 'Checking out source code'
                 checkout scm    // ensures repo files like package.json are available
+                sh 'mkdir -p /tmp/build-$BUILD_NUMBER && cp -r $WORKSPACE/* /tmp/build-$BUILD_NUMBER/'
+                script {
+                    env.BUILD_DIR = "/tmp/build-$BUILD_NUMBER"
+                }
             }
         }
         stage('Build') {
@@ -17,27 +21,25 @@ pipeline {
                 echo 'Installing Node.js dependencies...'
                 sh '''
                 docker run --rm \
-                  -v "$WORKSPACE":/app -w /app \
+                  -v "$BUILD_DIR":/app -w /app \
                   sithuj/node16-snyk:latest \
                   sh -c "npm install 2>&1 | tee /app/build.log || { echo 'Build failed'; exit 1; }"
                 '''
                 echo '===== [BUILD] Stage Completed ====='
             }
         }
-
         stage('Test') {
             steps {
                 echo '===== [TEST] Stage Started ====='
                 sh '''
                 docker run --rm \
-                  -v "$WORKSPACE":/app -w /app \
+                  -v "$BUILD_DIR":/app -w /app \
                   sithuj/node16-snyk:latest \
                   sh -c "npm test --verbose 2>&1 | tee /app/test.log || { echo 'Tests failed'; exit 1; }"
                 '''
                 echo '===== [TEST] Stage Completed ====='
             }
         }
-
         stage('Security Scan') {
             steps {
                 echo '===== [SECURITY SCAN] Stage Started ====='
@@ -45,7 +47,7 @@ pipeline {
                     sh '''
                     docker run --rm \
                       -e SNYK_TOKEN=$SNYK_TOKEN \
-                      -v "$WORKSPACE":/app -w /app \
+                      -v "$BUILD_DIR":/app -w /app \
                       sithuj/node16-snyk:latest \
                       sh -c "snyk test --severity-threshold=high 2>&1 | tee /app/snyk.log || { echo 'Security scan failed'; exit 1; }"
                     '''
