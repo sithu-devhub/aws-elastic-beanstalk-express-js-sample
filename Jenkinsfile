@@ -21,9 +21,22 @@ pipeline {
                 echo '===== [BUILD] Stage Started ====='
                 sh '''#!/bin/bash
                 set -o pipefail
+
                 docker run --rm -v "$BUILD_DIR":/app -w /app sithuj/node16-snyk:latest \
-                bash -c "npm install 2>&1 | tee /app/build.log"
+                bash -c "npm install 2>&1 | tee /app/build.log; exit ${PIPESTATUS[0]}"
                 rc=$?
+
+                # Guarantee build.log exists and overwrite
+                cp -f "$BUILD_DIR/build.log" "$WORKSPACE/build.log" || echo "no build log" > "$WORKSPACE/build.log"
+
+                # Debug: check file status
+                echo "=== DEBUG: Checking build.log files ==="
+                ls -l "$BUILD_DIR/build.log" || echo "No build.log in BUILD_DIR"
+                ls -l "$WORKSPACE/build.log" || echo "No build.log in WORKSPACE"
+
+                echo "=== DEBUG: Content of build.log (first 20 lines) ==="
+                head -n 20 "$WORKSPACE/build.log" || echo "build.log is empty"
+
 
                 # Guarantee build.log exists
                 touch "$BUILD_DIR/build.log"
@@ -99,8 +112,19 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+                    # Push docker image with unique build number tag
                     docker push sithuj/assignment2_22466972:${BUILD_NUMBER} \
                       2>&1 | tee "$BUILD_DIR/docker-push.log"
+
+                    # Tag the same image as latest
+                    docker tag sithuj/assignment2_22466972:${BUILD_NUMBER} \
+                            sithuj/assignment2_22466972:latest
+
+                    # Push the latest tag (will replace old latest)
+                    docker push sithuj/assignment2_22466972:latest \
+                    2>&1 | tee -a "$BUILD_DIR/docker-push.log"
+
                     rc=$?
                     docker logout
                     cp "$BUILD_DIR/docker-push.log" "$WORKSPACE/docker-push.log" || true
