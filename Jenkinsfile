@@ -66,7 +66,7 @@ pipeline {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
                 sh '''
                 docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} "$WORKSPACE" \
-                  2>&1 | tee $BUILD_DIR/docker-build.log
+                  2>&1 | tee /app/docker-build.log
                 '''
                 sh "cp $BUILD_DIR/docker-build.log $WORKSPACE/docker-build.log || true"
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
@@ -80,7 +80,7 @@ pipeline {
                     sh '''
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     docker push sithuj/assignment2_22466972:${BUILD_NUMBER} \
-                      2>&1 | tee $BUILD_DIR/docker-push.log || { echo "Docker image push failed"; exit 1; }
+                      2>&1 | tee /app/docker-push.log || { echo "Docker image push failed"; exit 1; }
                     docker logout
                     '''
                     sh "cp $BUILD_DIR/docker-push.log $WORKSPACE/docker-push.log || true"
