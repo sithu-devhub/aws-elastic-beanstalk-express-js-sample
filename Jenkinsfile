@@ -16,25 +16,36 @@ pipeline {
             }
         }
 
+
         stage('Build') {
             steps {
                 echo '===== [BUILD] Stage Started ====='
                 sh '''#!/bin/bash
                 set -o pipefail
-                docker run --rm -v "$BUILD_DIR":/app -w /app sithuj/node16-snyk:latest \
-                  bash -c "npm install 2>&1 | tee /app/build.log"
+
+                # Run npm install inside container and write to /app/build.log
+                cid=$(docker run -d -v "$BUILD_DIR":/app -w /app sithuj/node16-snyk:latest \
+                  bash -c "npm install 2>&1 | tee /app/build.log")
+
+                # Wait for container to finish
+                docker wait "$cid"
                 rc=$?
 
-                # Always ensure build.log exists
-                touch "$BUILD_DIR/build.log"
-                cp "$BUILD_DIR/build.log" "$WORKSPACE/build.log" 2>/dev/null || echo "No build log generated" > "$WORKSPACE/build.log"
+                # Copy build.log out of the container to host BUILD_DIR
+                docker cp "$cid:/app/build.log" "$BUILD_DIR/build.log" || echo "No build log" > "$BUILD_DIR/build.log"
+
+                # Cleanup container
+                docker rm "$cid" >/dev/null 2>&1 || true
+
+                # Copy into Jenkins workspace
+                cp "$BUILD_DIR/build.log" "$WORKSPACE/build.log"
 
                 exit $rc
                 '''
                 echo '===== [BUILD] Stage Completed ====='
             }
         }
-
+        
         stage('Test') {
             steps {
                 echo '===== [TEST] Stage Started ====='
@@ -56,16 +67,26 @@ pipeline {
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''#!/bin/bash
                     set -o pipefail
-                    docker run --rm \
+
+                    # Run snyk inside container and write to /app/snyk.log
+                    cid=$(docker run -d \
                       -e SNYK_TOKEN=$SNYK_TOKEN \
                       -v "$BUILD_DIR":/app -w /app \
                       sithuj/node16-snyk:latest \
-                      bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
+                      bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log")
+
+                    # Wait for container to finish
+                    docker wait "$cid"
                     rc=$?
 
-                    # Always ensure snyk.log exists
-                    touch "$BUILD_DIR/snyk.log"
-                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log" 2>/dev/null || echo "No snyk log generated" > "$WORKSPACE/snyk.log"
+                    # Copy snyk.log out of the container to host BUILD_DIR
+                    docker cp "$cid:/app/snyk.log" "$BUILD_DIR/snyk.log" || echo "No snyk log" > "$BUILD_DIR/snyk.log"
+
+                    # Cleanup container
+                    docker rm "$cid" >/dev/null 2>&1 || true
+
+                    # Copy into Jenkins workspace
+                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
 
                     exit $rc
                     '''
@@ -73,7 +94,6 @@ pipeline {
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
