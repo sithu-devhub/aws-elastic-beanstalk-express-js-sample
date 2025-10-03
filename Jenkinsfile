@@ -22,7 +22,7 @@ pipeline {
                 sh '''#!/bin/bash
                 set -o pipefail
                 docker run --rm -v "$BUILD_DIR":/app -w /app sithuj/node16-snyk:latest \
-                bash -c "npm install 2>&1 | tee /app/build.log || true"
+                bash -c "npm install 2>&1 | tee /app/build.log"
                 rc=$?
 
                 # Guarantee build.log exists
