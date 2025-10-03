@@ -12,9 +12,13 @@
     "url": "git+https://github.com/aws-samples/aws-elastic-beanstalk-express-js-sample.git"
   },
   "license": "MIT-0",
+
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "lodash": "4.17.4",
+    "minimist": "0.0.8"
   },
+
   "devDependencies": {
     "jest": "^29.7.0"
   }
