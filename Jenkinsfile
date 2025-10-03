@@ -75,20 +75,22 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
 
-                    # Run snyk inside Docker and let its exit code propagate directly
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee snyk.log"
+                    bash -c "snyk test --severity-threshold=high --json > snyk.json"
 
                     rc=$?
 
-                    # Add build header and copy log out of container volume
-                    {
-                    echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
-                    cat "$BUILD_DIR/snyk.log"
-                    } > "$WORKSPACE/snyk.log"
+                    # Copy results
+                    cp "$BUILD_DIR/snyk.json" "$WORKSPACE/snyk.json"
+
+                    # Fail if report contains High severity
+                    if grep -q '"severity":"high"' "$WORKSPACE/snyk.json"; then
+                    echo 'High severity vulnerabilities detected. Failing build.'
+                    exit 1
+                    fi
 
                     exit $rc
                     '''
