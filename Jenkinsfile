@@ -45,6 +45,7 @@ pipeline {
                 echo '===== [SECURITY SCAN] Stage Started ====='
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''
+                    #!/bin/bash
                     set -o pipefail
                     docker run --rm \
                       -e SNYK_TOKEN=$SNYK_TOKEN \
