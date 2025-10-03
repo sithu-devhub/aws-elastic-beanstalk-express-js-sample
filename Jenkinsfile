@@ -19,28 +19,30 @@ pipeline {
             steps {
                 echo '===== [BUILD] Stage Started ====='
                 echo 'Installing Node.js dependencies...'
-                sh '''
+                sh '''#!/bin/bash
+                set -o pipefail
                 docker run --rm \
                   -v "$BUILD_DIR":/app -w /app \
                   sithuj/node16-snyk:latest \
-                  sh -c "npm install 2>&1 | tee /app/build.log || { echo 'Build failed'; exit 1; }"
+                  bash -c "npm install 2>&1 | tee build.log; EXIT_CODE=\\${PIPESTATUS[0]}; cp build.log /app/build.log; exit \\$EXIT_CODE" || EXIT_CODE=$?
+                cp $BUILD_DIR/build.log $WORKSPACE/ || true
+                exit $EXIT_CODE
                 '''
-                // Copy build log back so Jenkins can archive it
-                sh "cp $BUILD_DIR/build.log $WORKSPACE/ || true"
                 echo '===== [BUILD] Stage Completed ====='
             }
         }
         stage('Test') {
             steps {
                 echo '===== [TEST] Stage Started ====='
-                sh '''
+                sh '''#!/bin/bash
+                set -o pipefail
                 docker run --rm \
                   -v "$BUILD_DIR":/app -w /app \
                   sithuj/node16-snyk:latest \
-                  sh -c "npm test --verbose 2>&1 | tee /app/test.log || { echo 'Tests failed'; exit 1; }"
+                  bash -c "npm test --verbose 2>&1 | tee test.log; EXIT_CODE=\\${PIPESTATUS[0]}; cp test.log /app/test.log; exit \\$EXIT_CODE" || EXIT_CODE=$?
+                cp $BUILD_DIR/test.log $WORKSPACE/ || true
+                exit $EXIT_CODE
                 '''
-                // Copy test log back so Jenkins can archive it
-                sh "cp $BUILD_DIR/test.log $WORKSPACE/ || true"
                 echo '===== [TEST] Stage Completed ====='
             }
         }
@@ -51,19 +53,17 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
                     docker run --rm \
-                    -e SNYK_TOKEN=$SNYK_TOKEN \
-                    -v "$BUILD_DIR":/app -w /app \
-                    sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high 2>&1 | tee snyk.log; EXIT_CODE=\\${PIPESTATUS[0]}; cp snyk.log /app/snyk.log; exit \\$EXIT_CODE"
+                      -e SNYK_TOKEN=$SNYK_TOKEN \
+                      -v "$BUILD_DIR":/app -w /app \
+                      sithuj/node16-snyk:latest \
+                      bash -c "snyk test --severity-threshold=high 2>&1 | tee snyk.log; EXIT_CODE=\\${PIPESTATUS[0]}; cp snyk.log /app/snyk.log; exit \\$EXIT_CODE" || EXIT_CODE=$?
+                    cp $BUILD_DIR/snyk.log $WORKSPACE/ || true
+                    exit $EXIT_CODE
                     '''
-                    // Copy snyk log back so Jenkins can archive it
-                    sh "cp $BUILD_DIR/snyk.log $WORKSPACE/ || true"
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
         }
-
-
         stage('Build Docker Image') {
             steps {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
@@ -74,28 +74,26 @@ pipeline {
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
             }
         }
-
         stage('Push to Docker Hub') {
             steps {
                 echo '===== [DOCKER PUSH] Stage Started ====='
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
+                    sh '''#!/bin/bash
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker push sithuj/assignment2_22466972:${BUILD_NUMBER} 2>&1 | tee "$WORKSPACE/docker-push.log" || { echo "Docker image push failed"; exit 1; }
+                    docker push sithuj/assignment2_22466972:${BUILD_NUMBER} 2>&1 | tee "$WORKSPACE/docker-push.log"; EXIT_CODE=$?
                     docker logout
+                    exit $EXIT_CODE
                     '''
                 }
                 echo '===== [DOCKER PUSH] Stage Completed ====='
             }
         }
-
         stage('Deploy') {
             steps {
                 echo 'Deploying...'
             }
         }
     }
-
     post {
         always {
             archiveArtifacts artifacts: '**/build.log', fingerprint: true
