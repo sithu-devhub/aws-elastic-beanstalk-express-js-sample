@@ -56,12 +56,9 @@ pipeline {
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
-                    rc=${PIPESTATUS[0]}
-
-                    # copy the log from the build dir into Jenkins workspace
+                    bash -c "set -o pipefail; snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log; exit \${PIPESTATUS[0]}"
+                    rc=$?
                     cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
-
                     exit $rc
                     '''
                 }
