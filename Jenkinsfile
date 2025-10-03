@@ -53,10 +53,10 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
                     docker run --rm \
-                      -e SNYK_TOKEN=$SNYK_TOKEN \
-                      -v "$BUILD_DIR":/app -w /app \
-                      sithuj/node16-snyk:latest \
-                      bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
+                    -e SNYK_TOKEN=$SNYK_TOKEN \
+                    -v "$BUILD_DIR":/app -w /app \
+                    sithuj/node16-snyk:latest \
+                    bash -c "snyk test --severity-threshold=high --fail-on=all 2>&1 | tee /app/snyk.log"
                     rc=${PIPESTATUS[0]}
                     cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
                     exit $rc
