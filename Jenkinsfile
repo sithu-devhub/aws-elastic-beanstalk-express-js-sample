@@ -49,16 +49,14 @@ pipeline {
                 echo '===== [SECURITY SCAN] Stage Started ====='
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''
-                    set -o pipefail
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high 2>&1 | tee /app/snyk.log"; \
-                    EXIT_CODE=${PIPESTATUS[0]}; \
-                    cp /app/snyk.log $WORKSPACE/; \
-                    exit $EXIT_CODE
+                    bash -c "set -o pipefail; snyk test --severity-threshold=high 2>&1 | tee snyk.log; exit \${PIPESTATUS[0]}"
                     '''
+                    // Copy snyk log back to workspace so Jenkins can archive it
+                    sh "cp $BUILD_DIR/snyk.log $WORKSPACE/ || true"
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
