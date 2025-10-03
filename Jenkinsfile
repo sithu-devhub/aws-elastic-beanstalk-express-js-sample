@@ -26,7 +26,7 @@ pipeline {
                   sh -c "npm install 2>&1 | tee /app/build.log || { echo 'Build failed'; exit 1; }"
                 '''
                 // Copy log into workspace for archiving
-                sh "cp $BUILD_DIR/build.log $WORKSPACE/ || true"
+                sh "cp $BUILD_DIR/build.log $WORKSPACE/build.log || true"
                 echo '===== [BUILD] Stage Completed ====='
             }
         }
@@ -40,7 +40,7 @@ pipeline {
                   sh -c "npm test --verbose 2>&1 | tee /app/test.log || { echo 'Tests failed'; exit 1; }"
                 '''
                 // Copy log into workspace for archiving
-                sh "cp $BUILD_DIR/test.log $WORKSPACE/ || true"
+                sh "cp $BUILD_DIR/test.log $WORKSPACE/test.log || true"
                 echo '===== [TEST] Stage Completed ====='
             }
         }
@@ -56,7 +56,7 @@ pipeline {
                       bash -c "set -o pipefail && snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
                     '''
                     // Copy log into workspace for archiving
-                    sh "cp $BUILD_DIR/snyk.log $WORKSPACE/ || true"
+                    sh "cp $BUILD_DIR/snyk.log $WORKSPACE/snyk.log || true"
                 }
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
