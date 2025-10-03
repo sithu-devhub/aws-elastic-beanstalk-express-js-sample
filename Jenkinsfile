@@ -25,6 +25,8 @@ pipeline {
                   sithuj/node16-snyk:latest \
                   sh -c "npm install 2>&1 | tee /app/build.log || { echo 'Build failed'; exit 1; }"
                 '''
+                // Copy build log back to workspace so Jenkins can archive it
+                sh "cp $BUILD_DIR/build.log $WORKSPACE/ || true"
                 echo '===== [BUILD] Stage Completed ====='
             }
         }
@@ -37,6 +39,8 @@ pipeline {
                   sithuj/node16-snyk:latest \
                   sh -c "npm test --verbose 2>&1 | tee /app/test.log || { echo 'Tests failed'; exit 1; }"
                 '''
+                // Copy test log back to workspace so Jenkins can archive it
+                sh "cp $BUILD_DIR/test.log $WORKSPACE/ || true"
                 echo '===== [TEST] Stage Completed ====='
             }
         }
@@ -52,6 +56,8 @@ pipeline {
                     bash -c "set -o pipefail && snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
                     '''
                 }
+                // Copy scan log back to workspace so Jenkins can archive it
+                sh "cp $BUILD_DIR/snyk.log $WORKSPACE/ || true"
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
         }
