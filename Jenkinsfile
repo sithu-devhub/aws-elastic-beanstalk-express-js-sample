@@ -91,10 +91,14 @@ pipeline {
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
                     snyk test --severity-threshold=high --json > "$BUILD_DIR/snyk.json" || true
-
-                    # Copy artifacts to workspace
+                    
+                    # Copy artifacts to workspace with unique header/footer
+                    {
                     echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date '+%Y-%m-%d %H:%M:%S') ====="
-                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
+                    cat "$BUILD_DIR/snyk.log"
+                    echo "===== End of Snyk Scan for Build #${BUILD_NUMBER} ====="
+                    } > "$WORKSPACE/snyk.log"
+
                     cp "$BUILD_DIR/snyk.json" "$WORKSPACE/snyk.json"
 
                     # Extra safeguard: fail if JSON shows high severity

@@ -28,7 +28,7 @@ pipeline {
 
                 # Guarantee build.log exists and overwrite with unique header
                 {
-                  echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                  echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date '+%Y-%m-%d %H:%M:%S') ====="
                   cat "$BUILD_DIR/build.log"
                 } > "$WORKSPACE/build.log"
 
@@ -58,7 +58,7 @@ pipeline {
 
                 # Add build header and copy log
                 {
-                echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date '+%Y-%m-%d %H:%M:%S') ====="
                 cat "$BUILD_DIR/test.log"
                 } > "$WORKSPACE/test.log"
 
@@ -93,7 +93,7 @@ pipeline {
                     snyk test --severity-threshold=high --json > "$BUILD_DIR/snyk.json" || true
 
                     # Copy artifacts to workspace
-                    echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                    echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date '+%Y-%m-%d %H:%M:%S') ====="
                     cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
                     cp "$BUILD_DIR/snyk.json" "$WORKSPACE/snyk.json"
 
@@ -121,7 +121,7 @@ pipeline {
 
                 # Add build header and copy log
                 {
-                echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date '+%Y-%m-%d %H:%M:%S') ====="
                 cat "$BUILD_DIR/docker-build.log"
                 } > "$WORKSPACE/docker-build.log"
 
@@ -158,7 +158,7 @@ pipeline {
 
                     # Add build header and copy log
                     {
-                    echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                    echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date '+%Y-%m-%d %H:%M:%S') ====="
                     cat "$BUILD_DIR/docker-push.log"
                     } > "$WORKSPACE/docker-push.log"
 
