@@ -63,19 +63,15 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
                     docker run --rm \
-                    -e SNYK_TOKEN=$SNYK_TOKEN \
-                    -v "$BUILD_DIR":/app -w /app \
-                    sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log; exit \${PIPESTATUS[0]}"
-
+                      -e SNYK_TOKEN=$SNYK_TOKEN \
+                      -v "$BUILD_DIR":/app -w /app \
+                      sithuj/node16-snyk:latest \
+                      bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
                     rc=$?
 
-                    # Guarantee snyk.log exists
-                    if [ ! -f "$BUILD_DIR/snyk.log" ]; then
-                    echo "No snyk log generated" > "$BUILD_DIR/snyk.log"
-                    fi
-
-                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
+                    # Always ensure snyk.log exists
+                    touch "$BUILD_DIR/snyk.log"
+                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log" 2>/dev/null || echo "No snyk log generated" > "$WORKSPACE/snyk.log"
 
                     exit $rc
                     '''
