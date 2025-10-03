@@ -75,27 +75,27 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
 
-                    # Run snyk twice: once for human logs, once for JSON
+                    # Run Snyk with tee, but preserve its exit code using PIPESTATUS
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
+                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log; exit ${PIPESTATUS[0]}"
 
                     rc=$?
 
-                    # Also export JSON for programmatic checks
+                    # Export JSON separately for parsing
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
                     snyk test --severity-threshold=high --json > "$BUILD_DIR/snyk.json"
 
-                    # Copy artifacts into Jenkins workspace
+                    # Copy artifacts
                     cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
                     cp "$BUILD_DIR/snyk.json" "$WORKSPACE/snyk.json"
 
-                    # Fail explicitly if High vulnerabilities are in JSON
+                    # Extra safeguard: fail if JSON contains high
                     if grep -q '"severity":"high"' "$WORKSPACE/snyk.json"; then
                     echo 'High severity vulnerabilities detected. Failing build.'
                     exit 1
