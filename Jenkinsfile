@@ -23,11 +23,14 @@ pipeline {
                 set -o pipefail
 
                 docker run --rm -v "$BUILD_DIR":/app -w /app sithuj/node16-snyk:latest \
-                bash -c "npm install 2>&1 | tee /app/build.log; exit ${PIPESTATUS[0]}"
+                  bash -c "npm install 2>&1 | tee /app/build.log; exit ${PIPESTATUS[0]}"
                 rc=$?
 
-                # Guarantee build.log exists and overwrite
-                cp -f "$BUILD_DIR/build.log" "$WORKSPACE/build.log" || echo "no build log" > "$WORKSPACE/build.log"
+                # Guarantee build.log exists and overwrite with unique header
+                {
+                  echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                  cat "$BUILD_DIR/build.log"
+                } > "$WORKSPACE/build.log"
 
                 # Debug: check file status
                 echo "=== DEBUG: Checking build.log files ==="
@@ -37,10 +40,6 @@ pipeline {
                 echo "=== DEBUG: Content of build.log (first 20 lines) ==="
                 head -n 20 "$WORKSPACE/build.log" || echo "build.log is empty"
 
-
-                # Guarantee build.log exists
-                touch "$BUILD_DIR/build.log"
-                cp -f "$BUILD_DIR/build.log" "$WORKSPACE/build.log" || true
                 exit $rc
                 '''
                 echo '===== [BUILD] Stage Completed ====='
