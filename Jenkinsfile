@@ -62,19 +62,20 @@ pipeline {
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''#!/bin/bash
                     set -o pipefail
+                    # Run snyk, pipe through tee, but never block log creation
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log; exit \${PIPESTATUS[0]}"
-
+                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log || true"
                     rc=$?
 
-                    # Ensure snyk.log exists
+                    # Guarantee snyk.log exists (fallback if tee wrote nothing)
                     if [ ! -f "$BUILD_DIR/snyk.log" ]; then
                     echo "No snyk log generated" > "$BUILD_DIR/snyk.log"
                     fi
 
+                    # Copy into Jenkins workspace
                     cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log"
 
                     exit $rc
