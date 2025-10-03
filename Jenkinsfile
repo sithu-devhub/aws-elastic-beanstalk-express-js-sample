@@ -21,18 +21,13 @@ pipeline {
                 echo '===== [BUILD] Stage Started ====='
                 sh '''#!/bin/bash
                 set -o pipefail
-                # Run npm install, pipe through tee, but never block log creation
                 docker run --rm -v "$BUILD_DIR":/app -w /app sithuj/node16-snyk:latest \
-                  bash -c "npm install 2>&1 | tee /app/build.log || true"
+                bash -c "npm install 2>&1 | tee /app/build.log || true"
                 rc=$?
 
-                # Guarantee build.log exists (fallback if tee wrote nothing)
-                if [ ! -f "$BUILD_DIR/build.log" ]; then
-                  echo "No build log generated" > "$BUILD_DIR/build.log"
-                fi
-
-                # Copy into Jenkins workspace
-                cp "$BUILD_DIR/build.log" "$WORKSPACE/build.log"
+                # Guarantee build.log exists
+                touch "$BUILD_DIR/build.log"
+                cp "$BUILD_DIR/build.log" "$WORKSPACE/build.log" || true
 
                 exit $rc
                 '''
@@ -63,15 +58,15 @@ pipeline {
                     sh '''#!/bin/bash
                     set -o pipefail
                     docker run --rm \
-                      -e SNYK_TOKEN=$SNYK_TOKEN \
-                      -v "$BUILD_DIR":/app -w /app \
-                      sithuj/node16-snyk:latest \
-                      bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
+                    -e SNYK_TOKEN=$SNYK_TOKEN \
+                    -v "$BUILD_DIR":/app -w /app \
+                    sithuj/node16-snyk:latest \
+                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log || true"
                     rc=$?
 
-                    # Always ensure snyk.log exists
+                    # Guarantee snyk.log exists
                     touch "$BUILD_DIR/snyk.log"
-                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log" 2>/dev/null || echo "No snyk log generated" > "$WORKSPACE/snyk.log"
+                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log" || true
 
                     exit $rc
                     '''
@@ -79,6 +74,7 @@ pipeline {
                 echo '===== [SECURITY SCAN] Stage Completed ====='
             }
         }
+
 
         stage('Build Docker Image') {
             steps {
