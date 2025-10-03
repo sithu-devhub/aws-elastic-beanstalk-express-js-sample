@@ -53,14 +53,21 @@ pipeline {
                 sh '''#!/bin/bash
                 set -o pipefail
                 docker run --rm -v "$BUILD_DIR":/app -w /app sithuj/node16-snyk:latest \
-                  bash -c "npm test --verbose 2>&1 | tee /app/test.log"
+                bash -c "npm test --verbose 2>&1 | tee /app/test.log"
                 rc=$?
-                cp "$BUILD_DIR/test.log" "$WORKSPACE/test.log" || true
+
+                # Add build header and copy log
+                {
+                echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                cat "$BUILD_DIR/test.log"
+                } > "$WORKSPACE/test.log"
+
                 exit $rc
                 '''
                 echo '===== [TEST] Stage Completed ====='
             }
         }
+
 
         stage('Security Scan') {
             steps {
@@ -75,9 +82,11 @@ pipeline {
                     bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log || true"
                     rc=$?
 
-                    # Guarantee snyk.log exists
-                    touch "$BUILD_DIR/snyk.log"
-                    cp "$BUILD_DIR/snyk.log" "$WORKSPACE/snyk.log" || true
+                    # Add build header and copy log
+                    {
+                    echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                    cat "$BUILD_DIR/snyk.log"
+                    } > "$WORKSPACE/snyk.log"
 
                     exit $rc
                     '''
@@ -86,16 +95,21 @@ pipeline {
             }
         }
 
-
         stage('Build Docker Image') {
             steps {
                 echo '===== [DOCKER IMAGE BUILD] Stage Started ====='
                 sh '''#!/bin/bash
                 set -o pipefail
                 docker build -t sithuj/assignment2_22466972:${BUILD_NUMBER} "$WORKSPACE" \
-                  2>&1 | tee "$BUILD_DIR/docker-build.log"
+                2>&1 | tee "$BUILD_DIR/docker-build.log"
                 rc=$?
-                cp "$BUILD_DIR/docker-build.log" "$WORKSPACE/docker-build.log" || true
+
+                # Add build header and copy log
+                {
+                echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                cat "$BUILD_DIR/docker-build.log"
+                } > "$WORKSPACE/docker-build.log"
+
                 exit $rc
                 '''
                 echo '===== [DOCKER IMAGE BUILD] Stage Completed ====='
@@ -106,19 +120,19 @@ pipeline {
             steps {
                 echo '===== [DOCKER PUSH] Stage Started ====='
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds',
-                                                 usernameVariable: 'DOCKER_USER',
-                                                 passwordVariable: 'DOCKER_PASS')]) {
+                                                usernameVariable: 'DOCKER_USER',
+                                                passwordVariable: 'DOCKER_PASS')]) {
                     sh '''#!/bin/bash
                     set -o pipefail
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
                     # Push docker image with unique build number tag
                     docker push sithuj/assignment2_22466972:${BUILD_NUMBER} \
-                      2>&1 | tee "$BUILD_DIR/docker-push.log"
+                    2>&1 | tee "$BUILD_DIR/docker-push.log"
 
                     # Tag the same image as latest
                     docker tag sithuj/assignment2_22466972:${BUILD_NUMBER} \
-                            sithuj/assignment2_22466972:latest
+                                sithuj/assignment2_22466972:latest
 
                     # Push the latest tag (will replace old latest)
                     docker push sithuj/assignment2_22466972:latest \
@@ -126,7 +140,13 @@ pipeline {
 
                     rc=$?
                     docker logout
-                    cp "$BUILD_DIR/docker-push.log" "$WORKSPACE/docker-push.log" || true
+
+                    # Add build header and copy log
+                    {
+                    echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
+                    cat "$BUILD_DIR/docker-push.log"
+                    } > "$WORKSPACE/docker-push.log"
+
                     exit $rc
                     '''
                 }
