@@ -68,21 +68,23 @@ pipeline {
             }
         }
 
-
         stage('Security Scan') {
             steps {
                 echo '===== [SECURITY SCAN] Stage Started ====='
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                     sh '''#!/bin/bash
                     set -o pipefail
+
+                    # Run snyk inside Docker and let its exit code propagate directly
                     docker run --rm \
                     -e SNYK_TOKEN=$SNYK_TOKEN \
                     -v "$BUILD_DIR":/app -w /app \
                     sithuj/node16-snyk:latest \
-                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee /app/snyk.log"
+                    bash -c "snyk test --severity-threshold=high --exit-code=1 2>&1 | tee snyk.log"
+
                     rc=$?
 
-                    # Add build header and copy log
+                    # Add build header and copy log out of container volume
                     {
                     echo "===== Jenkins Build #${BUILD_NUMBER} | Date: $(date) ====="
                     cat "$BUILD_DIR/snyk.log"
