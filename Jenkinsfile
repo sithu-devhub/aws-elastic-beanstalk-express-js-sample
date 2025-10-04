@@ -8,11 +8,13 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                echo '===== [CHECKOUT] Stage Started ====='
                 deleteDir()  // clean workspace to avoid stale logs
                 echo 'Checking out source code'
                 checkout scm
                 sh 'mkdir -p /tmp/build-$BUILD_NUMBER && cp -r $WORKSPACE/. /tmp/build-$BUILD_NUMBER/'
                 script { env.BUILD_DIR = "/tmp/build-$BUILD_NUMBER" }
+                echo '===== [CHECKOUT] Stage Completed ====='
             }
         }
 
